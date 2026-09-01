@@ -1,0 +1,72 @@
+Notepad Replacer End User License and Installation Risk Notice
+
+Version 1.0 (September 2026)
+
+Please read this document before continuing. It does not prohibit modification or derivative development. The GNU GPL grants the rights to copy, study, modify, and redistribute this software, subject to its conditions and the GPLv3 section 7 additional terms. Selecting "I accept" confirms that you received this licensing information and understand the installation behavior and risks described below.
+
+1. Applicable license
+
+Unless a file expressly states otherwise, the Notepad Replacer source code, installation scripts, and binaries built from them are licensed under the GNU General Public License, version 3 or (at your option) any later version (GPL-3.0-or-later), together with the section 7 additional terms in ADDITIONAL-TERMS.md. The complete GPL text is in the LICENSE file at the project root and is copied to the installation directory as LICENSE.txt.
+
+Third-party assets referenced by the project are not relicensed by this project notice and remain subject to their respective rights holders' terms. Known asset sources are listed in the README under "Image sources." Before redistribution, confirm the applicable asset license or replace the asset with one you are entitled to distribute.
+
+This notice does not replace the GPL or reduce the rights it grants. If this notice conflicts with the GPL or the section 7 additional terms, the GPL and those additional terms control. Mere receipt or execution of the software does not require acceptance of the GPL. By modifying or conveying the software, however, you exercise rights granted by the GPL and must comply with the applicable conditions.
+
+2. Use, study, and modification
+
+You may run the software for personal, educational, research, or commercial purposes. You may inspect the source code, study how it works, make private modifications, or have modifications made for you. The GPL does not require publication of modifications used only privately and not conveyed to another party.
+
+You may create and publish modified versions. When doing so, you must prominently mark the work as modified with the relevant date, preserve applicable copyright and licensing notices, and license the entire covered derivative work under the GPL. You may not use additional contracts, technical measures, or other means to deny recipients the rights they receive under the GPL.
+
+3. Redistribution and Corresponding Source
+
+You may distribute original or modified versions, with or without charging a fee. Source distributions must include the complete license text and applicable notices. When distributing object code, executables, or installers, you must provide the complete Corresponding Source by a method permitted by GPLv3 section 6, including scripts needed to generate, install, and run the object code. You may not convey a covered modified version as closed-source software.
+
+Publishing a modified binary without complete Corresponding Source, providing only obfuscated or non-buildable fragments, or using a nondisclosure agreement to prevent recipients from sharing the covered work does not satisfy this license. The GPL text controls the detailed rules for aggregates, System Libraries, Installation Information for User Products, and related matters.
+
+4. Development-origin notice and no misrepresentation
+
+This project applies additional terms under GPLv3 sections 7(b) and 7(c). Every conveyed copy of Original Material or a work based on it must preserve this notice:
+
+This software contains Original Material developed with AI assistance through vibe coding.
+本软件包含通过 AI 辅助的 vibe coding 方式开发的原始材料。
+
+You may not represent Notepad Replacer's Original Material as having been created exclusively through traditional manual programming, without AI assistance, or as "not vibe-coded." This restriction only prevents misrepresentation of the development origin of the Original Material. A modifier remains free to truthfully describe the development method used for independently authored changes. A modified version must not imply that its modifications were authored or endorsed by the original project contributors. See ADDITIONAL-TERMS.md for definitions and the controlling English terms.
+
+5. Names and branding
+
+The license grants no trademark rights in the Notepad Replacer name, icon, or other branding. The project name may be used reasonably to identify the origin of the Original Material, satisfy attribution duties, or describe compatibility. Modified versions should be clearly identified as modified so users do not mistake them for an unmodified official release.
+
+6. System changes made by Setup
+
+Setup requires administrator privileges. It removes the Microsoft Store version of Notepad installed for the current user and attempts to remove the corresponding provisioned package. It also writes Image File Execution Options (IFEO) registry configuration that redirects calls to notepad.exe to the replacement program you select.
+
+On supported 64-bit Windows 11 systems, Setup also deploys a File Explorer context-menu component. To register that component, Setup may add the certificate used to sign the MSIX package to the local machine TrustedPeople certificate store. Uninstall attempts to remove the IFEO configuration, context-menu registration, related certificate, and installed files created by this software.
+
+7. Replacement program and forwarded arguments
+
+You are responsible for selecting the EXE file that replaces Notepad. Select only a program that you trust and are entitled to use. Notepad Replacer forwards invocation arguments and selected file paths to that program, but does not control how the program reads, changes, uploads, or saves data. Forwarding may fail if the target is moved or deleted, its path changes during an update, or it rejects the supplied arguments.
+
+The replacement program is supplied by its own rights holder and remains subject to its own license and privacy terms. The Notepad Replacer license grants no rights in third-party programs and does not warrant their compatibility.
+
+8. Uninstall and restoration
+
+Uninstalling Notepad Replacer does not automatically reinstall the Microsoft Store version of Notepad. If you want that version back, you must reinstall it through Microsoft Store or another trusted Microsoft channel. Uninstall removes only configuration it can identify as created by this project. System policy, third-party configuration, replacement-editor data, and other user changes are outside its restoration scope.
+
+Back up important data and relevant system configuration before installation. On enterprise or managed devices, confirm that organizational policy permits removal of system applications, IFEO changes, and installation of a trusted certificate.
+
+9. No warranty
+
+To the maximum extent permitted by applicable law, the software is provided "as is," without any express or implied warranty, including warranties of merchantability, fitness for a particular purpose, title, and non-infringement. Contributors do not warrant that the software is error-free, uninterrupted, suitable for your environment, or able to restore Windows Notepad.
+
+10. Limitation of liability
+
+To the maximum extent permitted by applicable law, no copyright holder or contributor is liable for lost data, damaged configuration, business interruption, lost profits, or any direct, indirect, incidental, special, punitive, or consequential damages arising from use, inability to use, installation, or removal of the software, except for liability that applicable law does not permit to be excluded or limited.
+
+11. Noncompliance and restoration of rights
+
+If you violate the GPL, the relevant rights terminate and may be reinstated under the conditions in GPLv3 section 8. This notice must not be interpreted to add a prohibition on derivative development beyond the GPL and the section 7 additional terms.
+
+12. Acknowledgment
+
+By continuing, you acknowledge that the software makes administrator-level system changes, the Microsoft Store version of Notepad is not automatically restored on uninstall, you are responsible for the selected replacement program, and copying, modification, and redistribution are governed by GPL-3.0-or-later and the section 7 additional terms.

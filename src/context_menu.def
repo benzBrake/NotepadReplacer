@@ -1,0 +1,4 @@
+LIBRARY NotepadReplacerContextMenu
+EXPORTS
+    DllCanUnloadNow
+    DllGetClassObject
