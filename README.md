@@ -13,6 +13,8 @@ NotepadReplacer is a Windows Notepad replacement tool. It forwards calls to `not
 
 The installer handles target-program selection, removal of the Microsoft Store version of Notepad, system configuration, context-menu deployment, and uninstall cleanup. `NotepadReplacerLauncher` is the lightweight component that forwards process calls; it is not the name of the project itself.
 
+![The Open with Notepad command in the Windows 11 File Explorer context menu](docs/images/open-with-notepad.png)
+
 ## Features
 
 - Forward calls to `notepad.exe` to a specified `.exe` program.

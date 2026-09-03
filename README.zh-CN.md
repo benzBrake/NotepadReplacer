@@ -13,6 +13,8 @@ NotepadReplacer 是一个 Windows 记事本替代工具，可将系统对 `notep
 
 项目通过安装包完成目标程序选择、Microsoft Store 版记事本移除、系统配置写入、右键菜单部署和卸载清理。`NotepadReplacerLauncher` 是其中负责转发进程调用的轻量组件，并非项目本身的名称。
 
+![Windows 11 文件资源管理器右键菜单中的“使用记事本打开”命令](docs/images/open-with-notepad.png)
+
 ## 功能
 
 - 将系统对 `notepad.exe` 的调用转发到指定的 `.exe` 程序。
