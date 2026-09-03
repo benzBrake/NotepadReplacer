@@ -2,12 +2,21 @@ param(
     [ValidateSet('Debug', 'Release', 'RelWithDebInfo', 'MinSizeRel')]
     [string]$Configuration = 'Release',
     [string]$OutputDirectory = (Join-Path (Split-Path -Parent $PSScriptRoot) 'dist'),
-    [string]$SigningThumbprint = ''
+    [string]$SigningCertificatePath = '',
+    [string]$SigningCertificatePasswordPath = ''
 )
 
 $ErrorActionPreference = 'Stop'
+$certificateSubject = 'CN=Notepad Replacer'
 
 $root = Split-Path -Parent $PSScriptRoot
+$certificateDirectory = Join-Path $root '.certificates'
+if (-not $SigningCertificatePath) {
+    $SigningCertificatePath = Join-Path $certificateDirectory 'NotepadReplacer.pfx'
+}
+if (-not $SigningCertificatePasswordPath) {
+    $SigningCertificatePasswordPath = Join-Path $certificateDirectory 'NotepadReplacer.password'
+}
 $distDirectory = Join-Path $root 'dist'
 $x86 = Join-Path $distDirectory "x86\$Configuration\NotepadReplacerLauncher.exe"
 $x64 = Join-Path $distDirectory "x64\$Configuration\NotepadReplacerLauncher.exe"
@@ -38,87 +47,117 @@ function Find-WindowsSdkTool([string]$Name) {
     throw "$Name not found. Install the Windows 10/11 SDK before building the installer."
 }
 
+function Get-SigningCertificate {
+    $temporaryPath = $null
+    $certificate = $null
+    try {
+        if (Test-Path -LiteralPath $SigningCertificatePath -PathType Leaf) {
+            if (-not (Test-Path -LiteralPath $SigningCertificatePasswordPath -PathType Leaf)) {
+                throw "The local signing certificate password file is missing: $SigningCertificatePasswordPath"
+            }
+            $pfxPath = (Resolve-Path -LiteralPath $SigningCertificatePath).Path
+            $password = (Get-Content -LiteralPath $SigningCertificatePasswordPath -Raw).TrimEnd("`r", "`n")
+            if (-not $password) { throw 'The local signing certificate password is empty.' }
+            Write-Host "Using local signing certificate: $pfxPath"
+        } elseif (-not [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE)) {
+            if ([string]::IsNullOrEmpty($env:WINDOWS_CERTIFICATE_PASSWORD)) {
+                throw 'WINDOWS_CERTIFICATE_PASSWORD must be set when WINDOWS_CERTIFICATE is used.'
+            }
+            $temporaryPath = Join-Path ([System.IO.Path]::GetTempPath()) "NotepadReplacer-$([guid]::NewGuid().ToString('N')).pfx"
+            try {
+                $pfxBytes = [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE)
+            } catch {
+                throw 'WINDOWS_CERTIFICATE is not valid Base64.'
+            }
+            [System.IO.File]::WriteAllBytes($temporaryPath, $pfxBytes)
+            $pfxPath = $temporaryPath
+            $password = $env:WINDOWS_CERTIFICATE_PASSWORD
+            Write-Host 'Using signing certificate from environment variables.'
+        } else {
+            throw "No signing certificate was found. Create $SigningCertificatePath or set WINDOWS_CERTIFICATE and WINDOWS_CERTIFICATE_PASSWORD."
+        }
+
+        $keyStorageFlags = [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet
+        $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new(
+            $pfxPath,
+            $password,
+            $keyStorageFlags
+        )
+        if ($certificate.Subject -ne $certificateSubject) {
+            throw "The signing certificate subject must be '$certificateSubject'; got '$($certificate.Subject)'."
+        }
+        if (-not $certificate.HasPrivateKey) { throw 'The signing certificate has no private key.' }
+        if ($certificate.NotAfter -le (Get-Date).AddDays(30)) {
+            throw "The signing certificate expires too soon: $($certificate.NotAfter.ToString('u'))"
+        }
+
+        return [pscustomobject]@{
+            Certificate = $certificate
+            Password = $password
+            PfxPath = $pfxPath
+            TemporaryPath = $temporaryPath
+        }
+    } catch {
+        if ($certificate) { $certificate.Dispose() }
+        if ($temporaryPath -and (Test-Path -LiteralPath $temporaryPath)) {
+            Remove-Item -LiteralPath $temporaryPath -Force
+        }
+        throw
+    }
+}
+
 $makeAppx = Find-WindowsSdkTool 'MakeAppx.exe'
 $signTool = Find-WindowsSdkTool 'SignTool.exe'
+$signing = Get-SigningCertificate
 
-if ($SigningThumbprint) {
-    $certificate = Get-Item -LiteralPath "Cert:\CurrentUser\My\$SigningThumbprint" -ErrorAction SilentlyContinue
-    $certificateStoreArguments = @('/s', 'My')
-    if (-not $certificate) {
-        $certificate = Get-Item -LiteralPath "Cert:\LocalMachine\My\$SigningThumbprint" -ErrorAction SilentlyContinue
-        $certificateStoreArguments = @('/sm', '/s', 'My')
-    }
-    if (-not $certificate) { throw "Signing certificate not found: $SigningThumbprint" }
-} else {
-    $certificate = Get-ChildItem 'Cert:\CurrentUser\My' |
-        Where-Object {
-            $_.Subject -eq 'CN=Notepad Replacer' -and
-            $_.FriendlyName -eq 'Notepad Replacer Package Signing' -and
-            $_.HasPrivateKey -and
-            $_.NotAfter -gt (Get-Date).AddDays(30)
-        } |
-        Sort-Object NotAfter -Descending |
-        Select-Object -First 1
-    if (-not $certificate) {
-        $certificate = New-SelfSignedCertificate `
-            -Type Custom `
-            -Subject 'CN=Notepad Replacer' `
-            -FriendlyName 'Notepad Replacer Package Signing' `
-            -CertStoreLocation 'Cert:\CurrentUser\My' `
-            -KeyAlgorithm RSA `
-            -KeyLength 2048 `
-            -HashAlgorithm SHA256 `
-            -KeyUsage DigitalSignature `
-            -TextExtension @('2.5.29.19={text}false', '2.5.29.37={text}1.3.6.1.5.5.7.3.3') `
-            -NotAfter (Get-Date).AddYears(5)
-    }
-    $certificateStoreArguments = @('/s', 'My')
-}
-
-if ($certificate.Subject -ne 'CN=Notepad Replacer') {
-    throw "The signing certificate subject must match the manifest publisher 'CN=Notepad Replacer'; got '$($certificate.Subject)'."
-}
-if (-not $certificate.HasPrivateKey) { throw 'The signing certificate has no private key.' }
-
-if (Test-Path -LiteralPath $packageBuildDirectory) {
-    Remove-Item -LiteralPath $packageBuildDirectory -Recurse -Force
-}
-New-Item -ItemType Directory -Force -Path $packageContentDirectory | Out-Null
-Copy-Item -LiteralPath $manifest, $logo, $contextMenu -Destination $packageContentDirectory
-Copy-Item -LiteralPath $x64 -Destination (Join-Path $packageContentDirectory 'NotepadReplacerLauncher-x64.exe')
-
-& $makeAppx pack /d $packageContentDirectory /p $packagePath /o
-if ($LASTEXITCODE -ne 0) { throw "MakeAppx failed with exit code $LASTEXITCODE" }
-
-$signArguments = @('sign', '/fd', 'SHA256') + $certificateStoreArguments + @('/sha1', $certificate.Thumbprint, $packagePath)
-& $signTool @signArguments
-if ($LASTEXITCODE -ne 0) { throw "SignTool failed with exit code $LASTEXITCODE" }
-
-$signature = Get-AuthenticodeSignature -LiteralPath $packagePath
-if (-not $signature.SignerCertificate -or $signature.SignerCertificate.Thumbprint -ne $certificate.Thumbprint) {
-    throw 'The generated MSIX does not contain the expected signing certificate.'
-}
-
-Export-Certificate -Cert $certificate -FilePath $certificatePath -Force | Out-Null
-
-$iscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue
-if (-not $iscc) {
-    $candidates = @(
-        "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
-        "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe",
-        "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
-    )
-    $isccPath = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
-    if (-not $isccPath) { throw 'ISCC.exe not found. Install Inno Setup 6 before building the installer.' }
-} else {
-    $isccPath = $iscc.Source
-}
-
-New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
-Push-Location $PSScriptRoot
 try {
-    & $isccPath "/DBuildConfiguration=$Configuration" "/O$OutputDirectory" 'NotepadReplacer.iss'
-    if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
+    if (Test-Path -LiteralPath $packageBuildDirectory) {
+        Remove-Item -LiteralPath $packageBuildDirectory -Recurse -Force
+    }
+    New-Item -ItemType Directory -Force -Path $packageContentDirectory | Out-Null
+    Copy-Item -LiteralPath $manifest, $logo, $contextMenu -Destination $packageContentDirectory
+    Copy-Item -LiteralPath $x64 -Destination (Join-Path $packageContentDirectory 'NotepadReplacerLauncher-x64.exe')
+
+    & $makeAppx pack /d $packageContentDirectory /p $packagePath /o
+    if ($LASTEXITCODE -ne 0) { throw "MakeAppx failed with exit code $LASTEXITCODE" }
+
+    & $signTool sign /fd SHA256 /f $signing.PfxPath /p $signing.Password $packagePath
+    if ($LASTEXITCODE -ne 0) { throw "SignTool failed with exit code $LASTEXITCODE" }
+
+    $signature = Get-AuthenticodeSignature -LiteralPath $packagePath
+    if (-not $signature.SignerCertificate -or $signature.SignerCertificate.Thumbprint -ne $signing.Certificate.Thumbprint) {
+        throw 'The generated MSIX does not contain the expected signing certificate.'
+    }
+
+    $publicCertificate = $signing.Certificate.Export(
+        [System.Security.Cryptography.X509Certificates.X509ContentType]::Cert
+    )
+    [System.IO.File]::WriteAllBytes($certificatePath, $publicCertificate)
+
+    $iscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+    if (-not $iscc) {
+        $candidates = @(
+            "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
+            "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+        )
+        $isccPath = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+        if (-not $isccPath) { throw 'ISCC.exe not found. Install Inno Setup 6 before building the installer.' }
+    } else {
+        $isccPath = $iscc.Source
+    }
+
+    New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
+    Push-Location $PSScriptRoot
+    try {
+        & $isccPath "/DBuildConfiguration=$Configuration" "/O$OutputDirectory" 'NotepadReplacer.iss'
+        if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
+    } finally {
+        Pop-Location
+    }
 } finally {
-    Pop-Location
+    $signing.Certificate.Dispose()
+    if ($signing.TemporaryPath -and (Test-Path -LiteralPath $signing.TemporaryPath)) {
+        Remove-Item -LiteralPath $signing.TemporaryPath -Force
+    }
 }

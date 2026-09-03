@@ -117,12 +117,15 @@ powershell -ExecutionPolicy Bypass -File installer/build-installer.ps1
 dist\NotepadReplacerSetup.exe
 ```
 
-未指定签名证书时，构建脚本会在当前用户证书存储区创建或复用仅供本项目使用的自签名代码签名证书。正式发布时，可传入主题必须为 `CN=Notepad Replacer` 的代码签名证书指纹：
+首次构建安装包前，在本地生成固定的自签名证书：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File installer/build-installer.ps1 `
-  -SigningThumbprint "证书指纹"
+powershell -ExecutionPolicy Bypass -File installer/New-SigningCertificate.ps1
 ```
+
+生成的 PFX、密码和 Base64 文件位于 `.certificates`，该目录已被 Git 忽略。`build-installer.ps1` 优先使用本地的 `NotepadReplacer.pfx` 和 `NotepadReplacer.password`；本地文件不存在时，改用环境变量 `WINDOWS_CERTIFICATE`（PFX 的 Base64）与 `WINDOWS_CERTIFICATE_PASSWORD`。
+
+GitHub Actions 中，将 `.certificates/NotepadReplacer.pfx.base64` 的内容保存为仓库 Secret `WINDOWS_CERTIFICATE`，将 `.certificates/NotepadReplacer.password` 的内容保存为 `WINDOWS_CERTIFICATE_PASSWORD`。这样本地与远程构建会使用同一张证书。
 
 安装右键菜单时，安装器会将 MSIX 签名证书加入本机 `TrustedPeople` 证书存储区；卸载时会移除该证书。
 

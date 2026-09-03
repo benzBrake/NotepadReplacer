@@ -1,6 +1,9 @@
 # Unified build output
 /dist/
 
+# Local signing certificate and secret material
+/.certificates/
+
 # CMake generated files
 CMakeCache.txt
 CMakeFiles/

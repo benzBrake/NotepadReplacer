@@ -1,0 +1,68 @@
+name: Nightly
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Windows installer
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build application components
+        shell: pwsh
+        run: .\build.ps1 -Configuration Release
+
+      - name: Build tests
+        shell: pwsh
+        run: cmake --build dist/x64 --config Release --target launcher_core_tests
+
+      - name: Run tests
+        shell: pwsh
+        run: ctest --test-dir dist/x64 -C Release --output-on-failure
+
+      - name: Ensure Inno Setup is available
+        shell: pwsh
+        run: |
+          $iscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+          $standardPaths = @(
+            "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+          )
+          if (-not $iscc -and -not ($standardPaths | Where-Object { Test-Path -LiteralPath $_ })) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE -ne 0) {
+              throw "Installing Inno Setup failed with exit code $LASTEXITCODE."
+            }
+          }
+
+      - name: Build installer
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: .\installer\build-installer.ps1 -Configuration Release
+
+      - name: Upload nightly installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: NotepadReplacer-nightly
+          path: dist/NotepadReplacerSetup.exe
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
