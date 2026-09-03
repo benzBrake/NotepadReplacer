@@ -82,16 +82,18 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 
 脚本默认构建 Release 版本并使用静态 MSVC 运行库。可通过 `-Configuration Debug` 构建其他配置，或通过 `-DynamicRuntime` 改用动态运行库（目标系统需要安装对应版本的 Visual C++ Runtime）。
 
+所有构建产物统一写入 `dist`：x64 和 x86 的 CMake 构建目录分别为 `dist\x64` 与 `dist\x86`，右键菜单包位于 `dist\context-menu-package`。
+
 如只需构建 Launcher，可关闭 Windows 11 右键菜单组件：
 
 ```powershell
-cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DNOTEPADREPLACER_BUILD_CONTEXT_MENU=OFF
+cmake -S . -B dist/x64 -G "Visual Studio 17 2022" -A x64 -DNOTEPADREPLACER_BUILD_CONTEXT_MENU=OFF
 ```
 
 运行测试：
 
 ```powershell
-ctest --test-dir build -C Release --output-on-failure
+ctest --test-dir dist/x64 -C Release --output-on-failure
 ```
 
 ### 构建安装包
@@ -112,7 +114,7 @@ powershell -ExecutionPolicy Bypass -File installer/build-installer.ps1
 输出文件位于：
 
 ```text
-installer\output\NotepadReplacerSetup.exe
+dist\NotepadReplacerSetup.exe
 ```
 
 未指定签名证书时，构建脚本会在当前用户证书存储区创建或复用仅供本项目使用的自签名代码签名证书。正式发布时，可传入主题必须为 `CN=Notepad Replacer` 的代码签名证书指纹：

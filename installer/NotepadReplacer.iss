@@ -2,6 +2,9 @@
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Notepad Replacer"
 #define MyAppExeName "NotepadReplacerLauncher-x64.exe"
+#ifndef BuildConfiguration
+  #define BuildConfiguration "Release"
+#endif
 
 [Setup]
 AppId={{9F5E1BD7-34A9-4B2E-9E44-4E12B9BFA8F0}
@@ -12,7 +15,7 @@ DefaultDirName={sd}\Program Files\NotepadReplacer
 DisableDirPage=yes
 DisableProgramGroupPage=yes
 DefaultGroupName={#MyAppName}
-OutputDir=output
+OutputDir=..\dist
 OutputBaseFilename=NotepadReplacerSetup
 Compression=lzma2
 SolidCompression=yes
@@ -57,11 +60,11 @@ chinesesimp.MenuTitle=使用记事本打开
 [Files]
 Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion restartreplace
 Source: "..\ADDITIONAL-TERMS.md"; DestDir: "{app}"; Flags: ignoreversion restartreplace
-Source: "..\build-win32\Release\NotepadReplacerLauncher.exe"; DestDir: "{app}"; DestName: "NotepadReplacerLauncher-x86.exe"; Flags: ignoreversion restartreplace
-Source: "..\build\Release\NotepadReplacerLauncher.exe"; DestDir: "{app}"; DestName: "NotepadReplacerLauncher-x64.exe"; Flags: ignoreversion restartreplace; Check: IsWin64
+Source: "..\dist\x86\{#BuildConfiguration}\NotepadReplacerLauncher.exe"; DestDir: "{app}"; DestName: "NotepadReplacerLauncher-x86.exe"; Flags: ignoreversion restartreplace
+Source: "..\dist\x64\{#BuildConfiguration}\NotepadReplacerLauncher.exe"; DestDir: "{app}"; DestName: "NotepadReplacerLauncher-x64.exe"; Flags: ignoreversion restartreplace; Check: IsWin64
 Source: "..\replacer.ico"; DestDir: "{app}"; Flags: ignoreversion restartreplace; Check: IsWin64
-Source: "..\build\context-menu-package\NotepadReplacer.msix"; DestDir: "{app}\context-menu"; Flags: ignoreversion restartreplace; Check: IsWin64
-Source: "..\build\context-menu-package\NotepadReplacer.cer"; DestDir: "{app}\context-menu"; Flags: ignoreversion restartreplace; Check: IsWin64
+Source: "..\dist\context-menu-package\NotepadReplacer.msix"; DestDir: "{app}\context-menu"; Flags: ignoreversion restartreplace; Check: IsWin64
+Source: "..\dist\context-menu-package\NotepadReplacer.cer"; DestDir: "{app}\context-menu"; Flags: ignoreversion restartreplace; Check: IsWin64
 Source: "RegisterContextMenu.ps1"; DestDir: "{app}\context-menu"; Flags: ignoreversion restartreplace; Check: IsWin64
 Source: "RemoveNotepad.ps1"; DestDir: "{app}"; Flags: deleteafterinstall ignoreversion dontcopy
 

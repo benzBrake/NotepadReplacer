@@ -35,8 +35,9 @@ function Invoke-CMake([string[]]$Arguments) {
 }
 
 $cmake = Find-CMake
-$x64BuildDirectory = Join-Path $root 'build'
-$x86BuildDirectory = Join-Path $root 'build-win32'
+$distDirectory = Join-Path $root 'dist'
+$x64BuildDirectory = Join-Path $distDirectory 'x64'
+$x86BuildDirectory = Join-Path $distDirectory 'x86'
 
 Invoke-CMake @(
     '-S', $root,

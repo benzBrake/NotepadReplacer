@@ -1,18 +1,20 @@
 param(
+    [ValidateSet('Debug', 'Release', 'RelWithDebInfo', 'MinSizeRel')]
     [string]$Configuration = 'Release',
-    [string]$OutputDirectory = (Join-Path $PSScriptRoot 'output'),
+    [string]$OutputDirectory = (Join-Path (Split-Path -Parent $PSScriptRoot) 'dist'),
     [string]$SigningThumbprint = ''
 )
 
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $PSScriptRoot
-$x86 = Join-Path $root "build-win32\$Configuration\NotepadReplacerLauncher.exe"
-$x64 = Join-Path $root "build\$Configuration\NotepadReplacerLauncher.exe"
-$contextMenu = Join-Path $root "build\$Configuration\NotepadReplacerContextMenu.dll"
+$distDirectory = Join-Path $root 'dist'
+$x86 = Join-Path $distDirectory "x86\$Configuration\NotepadReplacerLauncher.exe"
+$x64 = Join-Path $distDirectory "x64\$Configuration\NotepadReplacerLauncher.exe"
+$contextMenu = Join-Path $distDirectory "x64\$Configuration\NotepadReplacerContextMenu.dll"
 $manifest = Join-Path $PSScriptRoot 'AppxManifest.xml'
 $logo = Join-Path $PSScriptRoot 'logo.png'
-$packageBuildDirectory = Join-Path $root 'build\context-menu-package'
+$packageBuildDirectory = Join-Path $distDirectory 'context-menu-package'
 $packageContentDirectory = Join-Path $packageBuildDirectory 'content'
 $packagePath = Join-Path $packageBuildDirectory 'NotepadReplacer.msix'
 $certificatePath = Join-Path $packageBuildDirectory 'NotepadReplacer.cer'
@@ -115,7 +117,7 @@ if (-not $iscc) {
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 Push-Location $PSScriptRoot
 try {
-    & $isccPath "/O$OutputDirectory" 'NotepadReplacer.iss'
+    & $isccPath "/DBuildConfiguration=$Configuration" "/O$OutputDirectory" 'NotepadReplacer.iss'
     if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
 } finally {
     Pop-Location
