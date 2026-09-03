@@ -1,5 +1,12 @@
 # NotepadReplacer
 
+[![Download Nightly](https://img.shields.io/badge/nightly.link-download-2ea44f?logo=githubactions&logoColor=white)](https://nightly.link/benzBrake/NotepadReplacer/workflows/nightly/master/NotepadReplacer-nightly)
+
+![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white)
+![CMake 3.21+](https://img.shields.io/badge/CMake-3.21%2B-064F8C?logo=cmake&logoColor=white)
+![Windows 11](https://img.shields.io/badge/Windows-11-0078D4?logo=windows11&logoColor=white)
+![Inno Setup 6](https://img.shields.io/badge/Inno_Setup-6-264478)
+
 NotepadReplacer 是一个 Windows 记事本替代工具，可将系统对 `notepad.exe` 的调用转发到用户指定的文本编辑器，并在 Windows 11 文件资源管理器中提供“使用记事本打开”右键菜单。
 
 项目通过安装包完成目标程序选择、Microsoft Store 版记事本移除、系统配置写入、右键菜单部署和卸载清理。`NotepadReplacerLauncher` 是其中负责转发进程调用的轻量组件，并非项目本身的名称。
