@@ -1,5 +1,7 @@
 # NotepadReplacer
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 [![Download Nightly](https://img.shields.io/badge/nightly.link-download-2ea44f?logo=githubactions&logoColor=white)](https://nightly.link/benzBrake/NotepadReplacer/workflows/nightly/master/NotepadReplacer-nightly)
 
 ![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white)
@@ -7,159 +9,153 @@
 ![Windows 11](https://img.shields.io/badge/Windows-11-0078D4?logo=windows11&logoColor=white)
 ![Inno Setup 6](https://img.shields.io/badge/Inno_Setup-6-264478)
 
-NotepadReplacer 是一个 Windows 记事本替代工具，可将系统对 `notepad.exe` 的调用转发到用户指定的文本编辑器，并在 Windows 11 文件资源管理器中提供“使用记事本打开”右键菜单。
+NotepadReplacer is a Windows Notepad replacement tool. It forwards calls to `notepad.exe` to a text editor selected by the user and adds an “Open with Notepad” context-menu command to File Explorer on Windows 11.
 
-项目通过安装包完成目标程序选择、Microsoft Store 版记事本移除、系统配置写入、右键菜单部署和卸载清理。`NotepadReplacerLauncher` 是其中负责转发进程调用的轻量组件，并非项目本身的名称。
+The installer handles target-program selection, removal of the Microsoft Store version of Notepad, system configuration, context-menu deployment, and uninstall cleanup. `NotepadReplacerLauncher` is the lightweight component that forwards process calls; it is not the name of the project itself.
 
-## 功能
+## Features
 
-- 将系统对 `notepad.exe` 的调用转发到指定的 `.exe` 程序。
-- 根据系统架构部署 Launcher；在 64 位系统上同时配置 32 位和 64 位 IFEO 注册表视图。
-- 按 Windows 命令行规则转义并转发有效参数，正确处理空格、引号和反斜杠。
-- 在 64 位 Windows 11 的文件资源管理器顶层右键菜单中提供“使用记事本打开”。
-- 支持从右键菜单一次打开多个选中的文件。
-- 提供中英文安装界面，以及安装失败回滚和卸载清理。
+- Forward calls to `notepad.exe` to a specified `.exe` program.
+- Deploy the Launcher for the system architecture; on 64-bit systems, configure both 32-bit and 64-bit IFEO registry views.
+- Escape and forward valid arguments according to Windows command-line rules, including spaces, quotes, and backslashes.
+- Add an “Open with Notepad” command to the top-level File Explorer context menu on 64-bit Windows 11.
+- Open multiple selected files from the context menu in one operation.
+- Provide Chinese and English installer interfaces, with rollback on installation failure and cleanup during uninstall.
 
-## 安装与使用
+## Installation and Usage
 
-1. 以管理员身份运行 `NotepadReplacerSetup.exe`。
-2. 选择要替代 Windows 记事本的可执行文件，例如其他文本编辑器的 `.exe` 文件。
-3. 确认移除 Microsoft Store 版 Notepad，等待安装完成。
-4. 此后，通过 `notepad.exe` 打开的文件会转交给所选程序；在支持的 Windows 11 系统中，也可以使用文件右键菜单中的“使用记事本打开”。
+1. Run `NotepadReplacerSetup.exe` as an administrator.
+2. Select the executable file that should replace Windows Notepad, such as the `.exe` file of another text editor.
+3. Confirm removal of the Microsoft Store version of Notepad and wait for installation to finish.
+4. Files opened through `notepad.exe` will then be forwarded to the selected program. On supported Windows 11 systems, you can also use “Open with Notepad” from the File Explorer context menu.
 
-安装目录固定为系统盘下的 `Program Files\NotepadReplacer`。目标程序的路径记录在：
+The installation directory is fixed at `Program Files\NotepadReplacer` on the system drive. The target program path is stored at:
 
 ```text
 HKEY_LOCAL_MACHINE\SOFTWARE\NotepadReplacer\TargetPath
 ```
 
-### 使用前须知
+### Before You Install
 
-- 安装程序需要管理员权限。
-- 安装会移除当前用户已安装的 Microsoft Store 版 Notepad，并移除系统中的对应预配包。
-- 卸载 NotepadReplacer **不会自动恢复 Microsoft Store 版 Notepad**，需要时请从 Microsoft Store 手动重新安装。
-- 所选替代程序必须保持在原路径；文件被移动或删除后，转发与右键菜单将无法正常工作。
-- 如果系统中已有不属于本项目的 `notepad.exe` IFEO Debugger 配置，安装程序会停止，以免覆盖现有配置。
-- 完整的 x64 安装流程要求 64 位 Windows 11（Build 22000 或更高版本）。右键菜单包无法注册时，安装会回滚。
+- The installer requires administrator privileges.
+- Installation removes the Microsoft Store version of Notepad installed for the current user and removes its corresponding provisioned package from the system.
+- Uninstalling NotepadReplacer **does not automatically restore the Microsoft Store version of Notepad**. Reinstall it manually from the Microsoft Store if needed.
+- The selected replacement program must remain at its original path. Forwarding and the context menu will not work correctly if the file is moved or deleted.
+- If an IFEO Debugger configuration for `notepad.exe` already exists and does not belong to this project, installation stops to avoid overwriting it.
+- The complete x64 installation requires 64-bit Windows 11 (Build 22000 or later). Installation rolls back if the context-menu package cannot be registered.
 
-## 工作原理
+## How It Works
 
-NotepadReplacer 由安装与配置流程、进程转发组件和 Windows 11 右键菜单组件共同组成：
+NotepadReplacer consists of the installation/configuration flow, a process-forwarding component, and Windows 11 context-menu components:
 
-| 部分 | 职责 |
+| Component | Responsibility |
 | --- | --- |
-| `NotepadReplacerSetup.exe` | 选择目标程序、移除 Store 版 Notepad、部署文件、写入 IFEO 和目标路径，并处理回滚与卸载 |
-| `NotepadReplacerLauncher` | 接收 IFEO Debugger 参数，移除其中由 Windows 附加的 `notepad.exe` 路径，再将其余参数转发给目标程序 |
-| `NotepadReplacerContextMenu.dll` | 实现 Windows 11 文件资源管理器命令，将选中的文件传给已配置的目标程序 |
-| `NotepadReplacer.msix` | 通过 `windows.fileExplorerContextMenus` 扩展注册右键菜单及 COM 组件 |
+| `NotepadReplacerSetup.exe` | Selects the target program, removes Store Notepad, deploys files, writes IFEO and the target path, and handles rollback and uninstall |
+| `NotepadReplacerLauncher` | Receives IFEO Debugger arguments, removes the `notepad.exe` path added by Windows, then forwards the remaining arguments to the target program |
+| `NotepadReplacerContextMenu.dll` | Implements the Windows 11 File Explorer command and passes selected files to the configured target program |
+| `NotepadReplacer.msix` | Registers the context-menu command and COM component through the `windows.fileExplorerContextMenus` extension |
 
-安装器将对应架构的 Launcher 写入以下 IFEO 配置：
+The installer writes the architecture-specific Launcher to the following IFEO configuration:
 
 ```text
 HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\notepad.exe
 ```
 
-调用链如下：
+The call flow is:
 
 ```text
-应用程序或命令行调用 notepad.exe
-  -> Windows 根据 IFEO 启动 NotepadReplacerLauncher
-  -> Launcher 清理 IFEO 附加参数
-  -> Launcher 创建所选目标程序的进程并立即退出
+An application or command line calls notepad.exe
+  -> Windows starts NotepadReplacerLauncher through IFEO
+  -> The Launcher removes the extra IFEO arguments
+  -> The Launcher creates the selected target process and exits immediately
 ```
 
-右键菜单不经过 `notepad.exe`，而是读取安装器保存的目标路径，直接启动目标程序并传入所有选中文件。
+The context menu does not go through `notepad.exe`. It reads the target path saved by the installer, starts the target program directly, and passes all selected files to it.
 
-## 从源码构建
+## Building from Source
 
-### 环境要求
+### Requirements
 
-- Visual Studio 2022，包含“使用 C++ 的桌面开发”工作负载
-- CMake 3.21 或更高版本
+- Visual Studio 2022 with the “Desktop development with C++” workload
+- CMake 3.21 or later
 - Windows 10/11 SDK
-- Inno Setup 6（仅构建安装包时需要）
+- Inno Setup 6 (only required to build the installer)
 
-### 构建程序组件
+### Build the Program Components
 
-运行构建脚本，生成安装器所需的 x64 Launcher、x64 右键菜单 DLL 和 x86 Launcher：
+Run the build script to generate the x64 Launcher, x64 context-menu DLL, and x86 Launcher required by the installer:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\build.ps1
 ```
 
-脚本默认构建 Release 版本并使用静态 MSVC 运行库。可通过 `-Configuration Debug` 构建其他配置，或通过 `-DynamicRuntime` 改用动态运行库（目标系统需要安装对应版本的 Visual C++ Runtime）。
+The script builds the Release configuration and uses the static MSVC runtime by default. Use `-Configuration Debug` for another configuration, or `-DynamicRuntime` to use the dynamic runtime (the target system must have the corresponding Visual C++ Runtime installed).
 
-所有构建产物统一写入 `dist`：x64 和 x86 的 CMake 构建目录分别为 `dist\x64` 与 `dist\x86`，右键菜单包位于 `dist\context-menu-package`。
+All build outputs are written to `dist`: the x64 and x86 CMake build directories are `dist\x64` and `dist\x86`, respectively, and the context-menu package is located at `dist\context-menu-package`.
 
-如只需构建 Launcher，可关闭 Windows 11 右键菜单组件：
+To build only the Launcher, disable the Windows 11 context-menu component:
 
 ```powershell
 cmake -S . -B dist/x64 -G "Visual Studio 17 2022" -A x64 -DNOTEPADREPLACER_BUILD_CONTEXT_MENU=OFF
 ```
 
-运行测试：
+Run the tests:
 
 ```powershell
 ctest --test-dir dist/x64 -C Release --output-on-failure
 ```
 
-### 构建安装包
+### Build the Installer
 
-完成 x64 和 x86 Release 构建后执行：
+After completing the x64 and x86 Release builds, run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File installer/build-installer.ps1
 ```
 
-脚本会完成以下工作：
+The script performs the following steps:
 
-1. 检查 x86、x64 Launcher 和 x64 右键菜单 DLL。
-2. 使用 Windows SDK 的 `MakeAppx.exe` 生成 MSIX 包。
-3. 使用 `SignTool.exe` 签名 MSIX，并导出安装时所需的证书。
-4. 调用 Inno Setup 的 `ISCC.exe` 生成最终安装程序。
+1. Checks for the x86 and x64 Launchers and the x64 context-menu DLL.
+2. Uses the Windows SDK `MakeAppx.exe` to create the MSIX package.
+3. Signs the MSIX with `SignTool.exe` and exports the certificate required during installation.
+4. Calls Inno Setup's `ISCC.exe` to generate the final installer.
 
-输出文件位于：
+The output file is:
 
 ```text
 dist\NotepadReplacerSetup.exe
 ```
 
-首次构建安装包前，在本地生成固定的自签名证书：
+Before building the installer for the first time, generate a fixed self-signed certificate locally:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File installer/New-SigningCertificate.ps1
 ```
 
-生成的 PFX、密码和 Base64 文件位于 `.certificates`，该目录已被 Git 忽略。`build-installer.ps1` 优先使用本地的 `NotepadReplacer.pfx` 和 `NotepadReplacer.password`；本地文件不存在时，改用环境变量 `WINDOWS_CERTIFICATE`（PFX 的 Base64）与 `WINDOWS_CERTIFICATE_PASSWORD`。
+The generated PFX, password, and Base64 files are placed in `.certificates`, which is ignored by Git. `build-installer.ps1` prefers the local `NotepadReplacer.pfx` and `NotepadReplacer.password`; if they are unavailable, it uses the `WINDOWS_CERTIFICATE` (Base64 PFX) and `WINDOWS_CERTIFICATE_PASSWORD` environment variables.
 
-GitHub Actions 中，将 `.certificates/NotepadReplacer.pfx.base64` 的内容保存为仓库 Secret `WINDOWS_CERTIFICATE`，将 `.certificates/NotepadReplacer.password` 的内容保存为 `WINDOWS_CERTIFICATE_PASSWORD`。这样本地与远程构建会使用同一张证书。
+For GitHub Actions, save the contents of `.certificates/NotepadReplacer.pfx.base64` as the repository secret `WINDOWS_CERTIFICATE`, and the contents of `.certificates/NotepadReplacer.password` as `WINDOWS_CERTIFICATE_PASSWORD`. Local and remote builds will then use the same certificate.
 
-安装右键菜单时，安装器会将 MSIX 签名证书加入本机 `TrustedPeople` 证书存储区；卸载时会移除该证书。
+When installing the context menu, the installer adds the MSIX signing certificate to the local `TrustedPeople` certificate store and removes the certificate during uninstall.
 
-## 故障排查
+## Troubleshooting
 
-如果 Windows 11 右键菜单注册失败，安装会回滚。PowerShell 和 AppX 的详细错误记录在：
+If registration of the Windows 11 context menu fails, the installation rolls back. Detailed PowerShell and AppX errors are recorded at:
 
 ```text
 %ProgramData%\NotepadReplacer\context-menu.log
 ```
 
-Launcher 是 Windows 子系统程序，不显示控制台窗口；它在创建目标进程后立即退出，不等待目标程序结束。
+The Launcher is a Windows subsystem program and does not display a console window. It exits immediately after creating the target process; it does not wait for the target program to finish.
 
-## 许可证
+## License
 
-本项目采用 [GNU General Public License v3.0 or later](LICENSE) 授权，并适用
-[GPLv3 第 7 节附加条款](ADDITIONAL-TERMS.md)。你可以使用、研究、修改和分发
-本软件；向他人分发原版或修改版时，必须按 GPL 提供完整对应源码并保留适用声明，
-不得将受 GPL 约束的二开版本闭源分发。
+This project is licensed under the [GNU General Public License v3.0 or later](LICENSE) and is subject to the [GPLv3 Section 7 Additional Terms](ADDITIONAL-TERMS.md). You may use, study, modify, and distribute this software. When distributing the original or a modified version, you must provide the complete corresponding source code under the GPL, retain applicable notices, and must not distribute GPL-covered derivative works as closed source.
 
-附加条款要求保留原始材料由 AI 辅助、通过 vibe coding 开发的来源声明，并禁止
-把原始材料歪曲为完全由传统手工编程、未借助 AI 或“非 vibe coding”完成。
-修改者可以如实说明自己独立创作部分所采用的开发方式。
+The Additional Terms require retaining the statement that the original materials were AI-assisted and developed through vibe coding, and prohibit misrepresenting the original materials as having been created entirely through traditional manual programming, without AI, or as “non-vibe coding.” Modifiers may truthfully describe the development methods used for their independently created portions.
 
-`replacer.ico` 与 `installer/logo.png` 是第三方素材，不因上述声明而被重新授权；
-再分发者需要遵守素材原权利人的许可，或将其替换为有权分发的素材。
+`replacer.ico` and `installer/logo.png` are third-party assets and are not relicensed by the statements above. Redistributors must comply with the original rights holders' licenses or replace these assets with materials they are authorized to distribute.
 
-## 图片来源
+## Image Sources
 
-`replacer.ico` 和 `installer/logo.png` 来源于 [Iconbuddy](https://iconbuddy.com/)。
+`replacer.ico` and `installer/logo.png` are sourced from [Iconbuddy](https://iconbuddy.com/).
