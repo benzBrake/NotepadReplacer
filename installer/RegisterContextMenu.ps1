@@ -55,7 +55,7 @@ try {
 
         Remove-Package
         Write-Log "Installing signed package $packagePath"
-        Add-AppxPackage -Path $packagePath -ForceApplicationShutdown -ErrorAction Stop
+        Add-AppxPackage -Path $packagePath -ExternalLocation $InstallDirectory -ForceApplicationShutdown -ErrorAction Stop
 
         $installed = Get-AppxPackage -Name $packageName -ErrorAction SilentlyContinue
         if (-not $installed) {

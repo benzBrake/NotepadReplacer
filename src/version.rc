@@ -5,8 +5,8 @@
 IDI_NOTEPAD_REPLACER ICON "../replacer.ico"
 
 1 VERSIONINFO
-FILEVERSION 1,0,0,0
-PRODUCTVERSION 1,0,0,0
+FILEVERSION 1,0,1,0
+PRODUCTVERSION 1,0,1,0
 FILEFLAGSMASK 0x3fL
 FILEFLAGS 0x0L
 FILEOS 0x40004L
@@ -19,12 +19,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Notepad Replacer\0"
             VALUE "FileDescription", "Notepad Replacer Launcher\0"
-            VALUE "FileVersion", "1.0.0.0\0"
+            VALUE "FileVersion", "1.0.1.0\0"
             VALUE "InternalName", "NotepadReplacerLauncher\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 Notepad Replacer contributors\0"
             VALUE "OriginalFilename", "NotepadReplacerLauncher.exe\0"
             VALUE "ProductName", "Notepad Replacer\0"
-            VALUE "ProductVersion", "1.0.0.0\0"
+            VALUE "ProductVersion", "1.0.1.0\0"
         END
     END
     BLOCK "VarFileInfo"

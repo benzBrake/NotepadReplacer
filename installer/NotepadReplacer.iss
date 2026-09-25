@@ -1,5 +1,5 @@
 ﻿#define MyAppName "Notepad Replacer"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "Notepad Replacer"
 #define MyAppExeName "NotepadReplacerLauncher-x64.exe"
 #ifndef BuildConfiguration
@@ -62,6 +62,7 @@ Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreve
 Source: "..\ADDITIONAL-TERMS.md"; DestDir: "{app}"; Flags: ignoreversion restartreplace
 Source: "..\dist\x86\{#BuildConfiguration}\NotepadReplacerLauncher.exe"; DestDir: "{app}"; DestName: "NotepadReplacerLauncher-x86.exe"; Flags: ignoreversion restartreplace
 Source: "..\dist\x64\{#BuildConfiguration}\NotepadReplacerLauncher.exe"; DestDir: "{app}"; DestName: "NotepadReplacerLauncher-x64.exe"; Flags: ignoreversion restartreplace; Check: IsWin64
+Source: "..\dist\x64\{#BuildConfiguration}\NotepadReplacerContextMenu.dll"; DestDir: "{app}"; Flags: ignoreversion restartreplace; Check: IsWin64
 Source: "..\replacer.ico"; DestDir: "{app}"; Flags: ignoreversion restartreplace; Check: IsWin64
 Source: "..\dist\context-menu-package\NotepadReplacer.msix"; DestDir: "{app}\context-menu"; Flags: ignoreversion restartreplace; Check: IsWin64
 Source: "..\dist\context-menu-package\NotepadReplacer.cer"; DestDir: "{app}\context-menu"; Flags: ignoreversion restartreplace; Check: IsWin64
@@ -269,6 +270,7 @@ begin
     RemoveTargetConfiguration;
   DeleteFile(AddBackslash(ExpandConstant('{app}')) + 'NotepadReplacerLauncher-x86.exe');
   DeleteFile(AddBackslash(ExpandConstant('{app}')) + 'NotepadReplacerLauncher-x64.exe');
+  DeleteFile(AddBackslash(ExpandConstant('{app}')) + 'NotepadReplacerContextMenu.dll');
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;

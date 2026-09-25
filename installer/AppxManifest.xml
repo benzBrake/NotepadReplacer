@@ -3,23 +3,28 @@
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4"
   xmlns:desktop5="http://schemas.microsoft.com/appx/manifest/desktop/windows10/5"
+  xmlns:desktop6="http://schemas.microsoft.com/appx/manifest/desktop/windows10/6"
   xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
-  IgnorableNamespaces="uap desktop4 desktop5 uap10 rescap com">
-  <Identity Name="NotepadReplacer.Sparse" ProcessorArchitecture="x64" Publisher="CN=Notepad Replacer" Version="1.0.0.0" />
+  IgnorableNamespaces="uap desktop4 desktop5 desktop6 uap10 rescap com">
+  <Identity Name="NotepadReplacer.Sparse" ProcessorArchitecture="x64" Publisher="CN=Notepad Replacer" Version="1.0.1.0" />
   <Properties>
     <DisplayName>Notepad Replacer</DisplayName>
     <PublisherDisplayName>Notepad Replacer</PublisherDisplayName>
     <Logo>logo.png</Logo>
+    <desktop6:RegistryWriteVirtualization>disabled</desktop6:RegistryWriteVirtualization>
+    <desktop6:FileSystemWriteVirtualization>disabled</desktop6:FileSystemWriteVirtualization>
+    <uap10:AllowExternalContent>true</uap10:AllowExternalContent>
   </Properties>
   <Resources><Resource Language="en-us" /></Resources>
   <Dependencies><TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.22000.0" MaxVersionTested="10.0.26100.0" /></Dependencies>
   <Capabilities>
     <rescap:Capability Name="runFullTrust" />
+    <rescap:Capability Name="unvirtualizedResources" />
   </Capabilities>
   <Applications>
-    <Application Id="NotepadReplacer" Executable="NotepadReplacerLauncher-x64.exe" uap10:RuntimeBehavior="win32App" uap10:TrustLevel="mediumIL">
+    <Application Id="NotepadReplacer" Executable="NotepadReplacerLauncher-x64.exe" EntryPoint="Windows.FullTrustApplication" uap10:TrustLevel="mediumIL">
       <uap:VisualElements AppListEntry="none" DisplayName="Notepad Replacer" Description="Notepad Replacer" Square44x44Logo="logo.png" Square150x150Logo="logo.png" BackgroundColor="transparent" />
       <Extensions>
         <desktop4:Extension Category="windows.fileExplorerContextMenus">

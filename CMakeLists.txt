@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(NotepadReplacerLauncher VERSION 0.0.0.2 LANGUAGES CXX RC)
+project(NotepadReplacerLauncher VERSION 1.0.1 LANGUAGES CXX RC)
 
 option(NOTEPADREPLACER_STATIC_CRT "Link the MSVC runtime statically (/MT)" ON)
 option(NOTEPADREPLACER_BUILD_CONTEXT_MENU "Build the Win11 context-menu DLL" ON)

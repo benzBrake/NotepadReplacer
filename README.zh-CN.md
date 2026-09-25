@@ -55,7 +55,7 @@ NotepadReplacer 由安装与配置流程、进程转发组件和 Windows 11 右�
 | `NotepadReplacerSetup.exe` | 选择目标程序、移除 Store 版 Notepad、部署文件、写入 IFEO 和目标路径，并处理回滚与卸载 |
 | `NotepadReplacerLauncher` | 接收 IFEO Debugger 参数，移除其中由 Windows 附加的 `notepad.exe` 路径，再将其余参数转发给目标程序 |
 | `NotepadReplacerContextMenu.dll` | 实现 Windows 11 文件资源管理器命令，将选中的文件传给已配置的目标程序 |
-| `NotepadReplacer.msix` | 通过 `windows.fileExplorerContextMenus` 扩展注册右键菜单及 COM 组件 |
+| `NotepadReplacer.msix` | 通过 `windows.fileExplorerContextMenus` 扩展注册右键菜单及 COM 组件；它是隐藏在“已安装的应用”之外的稀疏包，实际 DLL 使用安装目录中的文件 |
 
 安装器将对应架构的 Launcher 写入以下 IFEO 配置：
 
@@ -138,7 +138,7 @@ powershell -ExecutionPolicy Bypass -File installer/New-SigningCertificate.ps1
 
 GitHub Actions 中，将 `.certificates/NotepadReplacer.pfx.base64` 的内容保存为仓库 Secret `WINDOWS_CERTIFICATE`，将 `.certificates/NotepadReplacer.password` 的内容保存为 `WINDOWS_CERTIFICATE_PASSWORD`。这样本地与远程构建会使用同一张证书。
 
-安装右键菜单时，安装器会将 MSIX 签名证书加入本机 `TrustedPeople` 证书存储区；卸载时会移除该证书。
+安装右键菜单时，安装器会将 MSIX 签名证书加入本机 `TrustedPeople` 证书存储区，并将包注册到安装目录作为外部位置。该包通过 `AppListEntry="none"` 隐藏，不应在“已安装的应用”中显示为第二个可操作应用；卸载时会移除包、外部位置文件和证书。
 
 ## 故障排查
 

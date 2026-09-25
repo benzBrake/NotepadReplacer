@@ -55,7 +55,7 @@ NotepadReplacer consists of the installation/configuration flow, a process-forwa
 | `NotepadReplacerSetup.exe` | Selects the target program, removes Store Notepad, deploys files, writes IFEO and the target path, and handles rollback and uninstall |
 | `NotepadReplacerLauncher` | Receives IFEO Debugger arguments, removes the `notepad.exe` path added by Windows, then forwards the remaining arguments to the target program |
 | `NotepadReplacerContextMenu.dll` | Implements the Windows 11 File Explorer command and passes selected files to the configured target program |
-| `NotepadReplacer.msix` | Registers the context-menu command and COM component through the `windows.fileExplorerContextMenus` extension |
+| `NotepadReplacer.msix` | Registers the context-menu command and COM component through the `windows.fileExplorerContextMenus` extension; it is a hidden sparse package whose DLL is loaded from the normal install directory |
 
 The installer writes the architecture-specific Launcher to the following IFEO configuration:
 
@@ -138,7 +138,7 @@ The generated PFX, password, and Base64 files are placed in `.certificates`, whi
 
 For GitHub Actions, save the contents of `.certificates/NotepadReplacer.pfx.base64` as the repository secret `WINDOWS_CERTIFICATE`, and the contents of `.certificates/NotepadReplacer.password` as `WINDOWS_CERTIFICATE_PASSWORD`. Local and remote builds will then use the same certificate.
 
-When installing the context menu, the installer adds the MSIX signing certificate to the local `TrustedPeople` certificate store and removes the certificate during uninstall.
+When installing the context menu, the installer adds the MSIX signing certificate to the local `TrustedPeople` certificate store and registers the package with the installation directory as its external location. The package uses `AppListEntry="none"`, so it is not intended to appear as a second actionable app in Installed apps; uninstall removes the package, external-location files, and certificate.
 
 ## Troubleshooting
 

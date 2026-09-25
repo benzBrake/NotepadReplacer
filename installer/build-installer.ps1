@@ -115,10 +115,11 @@ try {
         Remove-Item -LiteralPath $packageBuildDirectory -Recurse -Force
     }
     New-Item -ItemType Directory -Force -Path $packageContentDirectory | Out-Null
-    Copy-Item -LiteralPath $manifest, $logo, $contextMenu -Destination $packageContentDirectory
-    Copy-Item -LiteralPath $x64 -Destination (Join-Path $packageContentDirectory 'NotepadReplacerLauncher-x64.exe')
+    # This is a sparse package: the executable and COM DLL remain in the
+    # normal installer directory and are resolved through ExternalLocation.
+    Copy-Item -LiteralPath $manifest, $logo -Destination $packageContentDirectory
 
-    & $makeAppx pack /d $packageContentDirectory /p $packagePath /o
+    & $makeAppx pack /d $packageContentDirectory /p $packagePath /o /nv
     if ($LASTEXITCODE -ne 0) { throw "MakeAppx failed with exit code $LASTEXITCODE" }
 
     & $signTool sign /fd SHA256 /f $signing.PfxPath /p $signing.Password $packagePath
