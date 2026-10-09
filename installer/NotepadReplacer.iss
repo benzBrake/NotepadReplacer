@@ -1,5 +1,5 @@
 ﻿#define MyAppName "Notepad Replacer"
-#define MyAppVersion "1.0.1"
+#define MyAppVersion "1.0.2"
 #define MyAppPublisher "Notepad Replacer"
 #define MyAppExeName "NotepadReplacerLauncher-x64.exe"
 #ifndef BuildConfiguration

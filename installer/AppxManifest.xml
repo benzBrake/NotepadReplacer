@@ -8,7 +8,7 @@
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
   IgnorableNamespaces="uap desktop4 desktop5 desktop6 uap10 rescap com">
-  <Identity Name="NotepadReplacer.Sparse" ProcessorArchitecture="x64" Publisher="CN=Notepad Replacer" Version="1.0.1.0" />
+  <Identity Name="NotepadReplacer.Sparse" ProcessorArchitecture="x64" Publisher="CN=Notepad Replacer" Version="1.0.2.0" />
   <Properties>
     <DisplayName>Notepad Replacer</DisplayName>
     <PublisherDisplayName>Notepad Replacer</PublisherDisplayName>
