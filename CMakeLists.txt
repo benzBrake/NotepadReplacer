@@ -65,7 +65,7 @@ if(BUILD_TESTING)
     target_compile_definitions(launcher_core_tests PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
     if(MSVC)
         set_property(TARGET launcher_core_tests PROPERTY MSVC_RUNTIME_LIBRARY "${_runtime}")
-        target_compile_options(launcher_core_tests PRIVATE $<$<CONFIG:Release>:/O1> $<$<CONFIG:Release>:/GL>)
+        target_compile_options(launcher_core_tests PRIVATE /UNDEBUG $<$<CONFIG:Release>:/O1> $<$<CONFIG:Release>:/GL>)
         target_link_options(launcher_core_tests PRIVATE
             $<$<CONFIG:Release>:/LTCG>
             $<$<CONFIG:Release>:/OPT:REF>

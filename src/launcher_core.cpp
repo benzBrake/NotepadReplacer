@@ -32,14 +32,19 @@ bool IsNotepadImage(std::wstring_view value) {
            EndsWithInsensitive(trimmed, L"/notepad.exe");
 }
 
-std::vector<std::wstring> BuildForwardedArgs(int argc, wchar_t* const* argv) {
-    std::vector<std::wstring> forwarded;
-    if (!argv || argc <= 2) return forwarded;
+bool IsExplicitTarget(std::wstring_view value) {
+    return EndsWithInsensitive(value, L".exe");
+}
 
-    for (int i = 2; i < argc; ++i) {
+std::vector<std::wstring> BuildForwardedArgs(int argc, wchar_t* const* argv,
+                                             int first_arg) {
+    std::vector<std::wstring> forwarded;
+    if (!argv || first_arg < 1 || argc <= first_arg) return forwarded;
+
+    for (int i = first_arg; i < argc; ++i) {
         if (argv[i] && argv[i][0] != L'\0') forwarded.emplace_back(argv[i]);
     }
-    if (!forwarded.empty() && IsNotepadImage(forwarded.front())) {
+    if (first_arg == 2 && !forwarded.empty() && IsNotepadImage(forwarded.front())) {
         forwarded.erase(forwarded.begin());
     }
     return forwarded;

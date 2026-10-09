@@ -8,8 +8,10 @@
 namespace notepad_replacer {
 
 bool IsNotepadImage(std::wstring_view value);
+bool IsExplicitTarget(std::wstring_view value);
 
-std::vector<std::wstring> BuildForwardedArgs(int argc, wchar_t* const* argv);
+std::vector<std::wstring> BuildForwardedArgs(int argc, wchar_t* const* argv,
+                                             int first_arg = 2);
 
 std::wstring QuoteWindowsCommandLineArg(std::wstring_view value);
 

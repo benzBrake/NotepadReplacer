@@ -142,6 +142,8 @@ When installing the context menu, the installer adds the MSIX signing certificat
 
 ## Troubleshooting
 
+The Launcher also supports file associations: when passed a document path directly, it reads the configured editor and forwards the document arguments. Existing IFEO calls continue to use the editor supplied on the command line. A first argument ending in `.exe` is treated as an editor executable, so opening `.exe` files as documents through this interface is not supported.
+
 If registration of the Windows 11 context menu fails, the installation rolls back. Detailed PowerShell and AppX errors are recorded at:
 
 ```text

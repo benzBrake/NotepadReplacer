@@ -31,6 +31,8 @@ NotepadReplacer 是一个 Windows 记事本替代工具，可将系统对 `notep
 3. 确认移除 Microsoft Store 版 Notepad，等待安装完成。
 4. 此后，通过 `notepad.exe` 打开的文件会转交给所选程序；在支持的 Windows 11 系统中，也可以使用文件右键菜单中的“使用记事本打开”。
 
+也可将文件的默认打开方式设为安装目录中的 `NotepadReplacerLauncher-x64.exe`（32 位系统使用 x86 版本）。Launcher 收到文件路径后，会读取已配置的编辑器并转发文件；原有 IFEO 调用仍使用命令行中指定的编辑器。第一个参数以 `.exe` 结尾时按编辑器路径处理，因此不支持用此方式编辑 `.exe` 文件。
+
 安装目录固定为系统盘下的 `Program Files\NotepadReplacer`。目标程序的路径记录在：
 
 ```text

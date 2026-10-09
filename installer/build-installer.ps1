@@ -3,7 +3,8 @@ param(
     [string]$Configuration = 'Release',
     [string]$OutputDirectory = (Join-Path (Split-Path -Parent $PSScriptRoot) 'dist'),
     [string]$SigningCertificatePath = '',
-    [string]$SigningCertificatePasswordPath = ''
+    [string]$SigningCertificatePasswordPath = '',
+    [switch]$UseCertificateStore
 )
 
 $ErrorActionPreference = 'Stop'
@@ -32,6 +33,54 @@ if (-not (Test-Path -LiteralPath $x86)) { throw "Missing x86 launcher: $x86" }
 if (-not (Test-Path -LiteralPath $x64)) { throw "Missing x64 launcher: $x64" }
 if (-not (Test-Path -LiteralPath $contextMenu)) { throw "Missing x64 context-menu DLL: $contextMenu" }
 
+function Assert-FileAssociationRegistration {
+    $installerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'NotepadReplacer.iss') -Raw
+    $registrySection = [regex]::Match($installerSource, '(?ms)^\[Registry\]\s*\r?\n(?<entries>.*?)(?=^\[|\z)')
+    if (-not $registrySection.Success) {
+        throw 'The installer must register Launcher file associations in [Registry].'
+    }
+    $entries = @($registrySection.Groups['entries'].Value -split '\r?\n' |
+        Where-Object { $_ -match '^\s*Root:' })
+    $requirements = @(
+        @{ Key = 'SOFTWARE\Classes\NotepadReplacer.TextFile'; Value = ''; Data = 'Notepad Replacer Launcher'; Flag = 'uninsdeletekey' },
+        @{ Key = 'SOFTWARE\Classes\NotepadReplacer.TextFile\shell\open\command'; Value = ''; Data = '""{code:AssociationLauncherPath}"" ""%1""'; Flag = '' },
+        @{ Key = 'SOFTWARE\Classes\Applications\{code:AssociationLauncherName}'; Value = 'FriendlyAppName'; Data = 'Notepad Replacer Launcher'; Flag = 'uninsdeletekey' },
+        @{ Key = 'SOFTWARE\Classes\Applications\{code:AssociationLauncherName}\shell\open\command'; Value = ''; Data = '""{code:AssociationLauncherPath}"" ""%1""'; Flag = '' }
+    )
+    foreach ($requirement in $requirements) {
+        $matching = @($entries | Where-Object {
+            $_.Contains('Subkey: "' + $requirement.Key + '";') -and
+            $_.Contains('ValueName: "' + $requirement.Value + '";') -and
+            $_.Contains('ValueData: "' + $requirement.Data + '"') -and
+            (-not $requirement.Flag -or $_ -match ('Flags:\s*[^;\r\n]*\b' + $requirement.Flag + '\b'))
+        })
+        if ($matching.Count -ne 1) {
+            throw "Missing or ambiguous file association registration: $($requirement.Key)"
+        }
+    }
+    $extensions = @('.txt', '.log', '.csv', '.md', '.rst', '.json', '.xml', '.yaml', '.yml',
+                    '.ini', '.cfg', '.conf', '.ps1', '.bat', '.cmd', '.html', '.css', '.js')
+    foreach ($extension in $extensions) {
+        $key = 'SOFTWARE\Classes\' + $extension + '\OpenWithProgids'
+        $matching = @($entries | Where-Object {
+            $_.Contains('Subkey: "' + $key + '";') -and
+            $_.Contains('ValueType: none;') -and
+            $_.Contains('ValueName: "NotepadReplacer.TextFile";') -and
+            $_ -match 'Flags:\s*[^;\r\n]*\buninsdeletevalue\b'
+        })
+        if ($matching.Count -ne 1) {
+            throw "Missing or ambiguous Open With registration/uninstall cleanup: $extension"
+        }
+    }
+    if ($installerSource -notmatch '(?m)^ChangesAssociations=yes\s*$') {
+        throw 'The installer must refresh file associations with ChangesAssociations=yes.'
+    }
+    Write-Host 'Verified Launcher Open With registration, document commands, and uninstall cleanup.'
+}
+
+# Keep this check in the packaging entry point so incomplete installers cannot be produced.
+Assert-FileAssociationRegistration
+
 function Find-WindowsSdkTool([string]$Name) {
     $command = Get-Command $Name -ErrorAction SilentlyContinue
     if ($command) { return $command.Source }
@@ -48,6 +97,20 @@ function Find-WindowsSdkTool([string]$Name) {
 }
 
 function Get-SigningCertificate {
+    if ($UseCertificateStore) {
+        $certificates = @(Get-ChildItem Cert:\CurrentUser\My | Where-Object {
+            $_.Subject -eq $certificateSubject -and $_.HasPrivateKey -and
+            $_.NotAfter -gt (Get-Date).AddDays(30)
+        })
+        if ($certificates.Count -ne 1) {
+            throw 'Certificate store signing requires exactly one valid Notepad Replacer certificate with a private key.'
+        }
+        Write-Host 'Using signing certificate from the current user certificate store.'
+        return [pscustomobject]@{
+            Certificate = $certificates[0]
+            TemporaryPath = $null
+        }
+    }
     $temporaryPath = $null
     $certificate = $null
     try {
@@ -122,7 +185,13 @@ try {
     & $makeAppx pack /d $packageContentDirectory /p $packagePath /o /nv
     if ($LASTEXITCODE -ne 0) { throw "MakeAppx failed with exit code $LASTEXITCODE" }
 
-    & $signTool sign /fd SHA256 /f $signing.PfxPath /p $signing.Password $packagePath
+    if ($UseCertificateStore) {
+        $storeCertificate = Get-Item -LiteralPath "Cert:\CurrentUser\My\$($signing.Certificate.Thumbprint)" -ErrorAction Stop
+        if (-not $storeCertificate.HasPrivateKey) { throw 'The certificate store entry has no private key.' }
+        & $signTool sign /fd SHA256 /s My /sha1 $signing.Certificate.Thumbprint $packagePath
+    } else {
+        & $signTool sign /fd SHA256 /f $signing.PfxPath /p $signing.Password $packagePath
+    }
     if ($LASTEXITCODE -ne 0) { throw "SignTool failed with exit code $LASTEXITCODE" }
 
     $signature = Get-AuthenticodeSignature -LiteralPath $packagePath

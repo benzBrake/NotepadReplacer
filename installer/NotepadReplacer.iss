@@ -28,6 +28,7 @@ UninstallDisplayName={#MyAppName}
 SetupIconFile=..\replacer.ico
 LicenseFile=LicenseEN.txt
 LanguageDetectionMethod=locale
+ChangesAssociations=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"; LicenseFile: "LicenseEN.txt"
@@ -71,6 +72,31 @@ Source: "RemoveNotepad.ps1"; DestDir: "{app}"; Flags: deleteafterinstall ignorev
 
 [Icons]
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
+
+[Registry]
+Root: HKLM; Subkey: "SOFTWARE\Classes\NotepadReplacer.TextFile"; ValueType: string; ValueName: ""; ValueData: "Notepad Replacer Launcher"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "SOFTWARE\Classes\NotepadReplacer.TextFile\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: """{code:AssociationLauncherPath}"",0"
+Root: HKLM; Subkey: "SOFTWARE\Classes\NotepadReplacer.TextFile\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{code:AssociationLauncherPath}"" ""%1"""
+Root: HKLM; Subkey: "SOFTWARE\Classes\Applications\{code:AssociationLauncherName}"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "Notepad Replacer Launcher"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "SOFTWARE\Classes\Applications\{code:AssociationLauncherName}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{code:AssociationLauncherPath}"" ""%1"""
+Root: HKLM; Subkey: "SOFTWARE\Classes\.txt\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.log\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.csv\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.md\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.rst\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.json\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.xml\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.yaml\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.yml\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.ini\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.cfg\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.conf\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.ps1\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.bat\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.cmd\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.html\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.css\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Classes\.js\OpenWithProgids"; ValueType: none; ValueName: "NotepadReplacer.TextFile"; Flags: uninsdeletevalue
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
@@ -116,6 +142,19 @@ end;
 function ConfigSubKey(): String;
 begin
   Result := 'SOFTWARE\NotepadReplacer';
+end;
+
+function AssociationLauncherName(Param: String): String;
+begin
+  if IsWin64 then
+    Result := 'NotepadReplacerLauncher-x64.exe'
+  else
+    Result := 'NotepadReplacerLauncher-x86.exe';
+end;
+
+function AssociationLauncherPath(Param: String): String;
+begin
+  Result := AddBackslash(ExpandConstant('{app}')) + AssociationLauncherName('');
 end;
 
 function RunContextMenuRegistration(const Action: String): Boolean;
