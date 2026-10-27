@@ -44,6 +44,7 @@ english.ExistingIfeo=An IFEO Debugger configuration for notepad.exe already exis
 english.StoreRemoveFailed=Failed to remove the Microsoft Store version of Notepad. Installation has been cancelled.
 english.IfeoWriteFailed=Failed to write the IFEO configuration. Installation will be rolled back.
 english.ContextMenuRegisterFailed=The File Explorer context-menu extension could not be registered. Details were written to:%n%n%s
+english.AppPathsFailed=The Notepad Shell entry could not be registered or restored. Recovery data has been retained when needed. Details were written to:%n%n%s
 english.UninstallNotice=Notepad Replacer has been uninstalled. The Microsoft Store version of Notepad is not restored automatically; reinstall it from the Microsoft Store if needed.
 english.MenuTitle=Open with Notepad
 chinesesimp.SelectTitle=选择替代程序
@@ -55,6 +56,7 @@ chinesesimp.ExistingIfeo=检测到 notepad.exe 已存在 IFEO Debugger 配置：
 chinesesimp.StoreRemoveFailed=删除 Microsoft Store 版 Notepad 失败，安装已中止。
 chinesesimp.IfeoWriteFailed=写入 IFEO 配置失败，安装将回滚。
 chinesesimp.ContextMenuRegisterFailed=文件资源管理器右键菜单扩展注册失败。详细错误已写入：%n%n%s
+chinesesimp.AppPathsFailed=无法注册或恢复记事本 Shell 启动入口。需要恢复的备份已保留。详细错误已写入：%n%n%s
 chinesesimp.UninstallNotice=Notepad Replacer 已卸载。Microsoft Store 版 Notepad 不会自动恢复，请按需从 Microsoft Store 重新安装。
 chinesesimp.MenuTitle=使用记事本打开
 
@@ -69,6 +71,8 @@ Source: "..\dist\context-menu-package\NotepadReplacer.msix"; DestDir: "{app}\con
 Source: "..\dist\context-menu-package\NotepadReplacer.cer"; DestDir: "{app}\context-menu"; Flags: ignoreversion restartreplace; Check: IsWin64
 Source: "RegisterContextMenu.ps1"; DestDir: "{app}\context-menu"; Flags: ignoreversion restartreplace; Check: IsWin64
 Source: "RemoveNotepad.ps1"; DestDir: "{app}"; Flags: deleteafterinstall ignoreversion dontcopy
+Source: "RegisterAppPaths.ps1"; DestDir: "{app}"; Flags: ignoreversion restartreplace
+Source: "AppPathsRegistry.ps1"; DestDir: "{app}"; Flags: ignoreversion restartreplace
 
 [Icons]
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
@@ -108,6 +112,7 @@ var
   Ifeo32Written: Boolean;
   Ifeo64Written: Boolean;
   TargetWritten: Boolean;
+  AppPathsAttempted: Boolean;
   TargetPath: String;
 
 procedure SHChangeNotify(wEventId, uFlags: Integer; dwItem1, dwItem2: Integer);
@@ -155,6 +160,24 @@ end;
 function AssociationLauncherPath(Param: String): String;
 begin
   Result := AddBackslash(ExpandConstant('{app}')) + AssociationLauncherName('');
+end;
+
+function RunAppPathsRegistration(const Action: String): Boolean;
+var
+  Code: Integer;
+  Params: String;
+begin
+  Params := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ' +
+    QuoteArg(AddBackslash(ExpandConstant('{app}')) + 'RegisterAppPaths.ps1') +
+    ' -Action ' + Action + ' -LauncherPath ' + QuoteArg(AssociationLauncherPath(''));
+  Result := Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    Params, '', SW_HIDE, ewWaitUntilTerminated, Code) and (Code = 0);
+end;
+
+procedure ShowAppPathsError;
+begin
+  MsgBox(Format(CustomMessage('AppPathsFailed'), [ExpandConstant(
+    '{commonappdata}\NotepadReplacer\app-paths.log')]), mbError, MB_OK);
 end;
 
 function RunContextMenuRegistration(const Action: String): Boolean;
@@ -300,6 +323,10 @@ end;
 
 procedure RollbackInstall;
 begin
+  if AppPathsAttempted and not RunAppPathsRegistration('Rollback') then begin
+    ShowAppPathsError;
+    Exit;
+  end;
   RemoveContextMenuRegistration();
   if Ifeo32Written then
     DeleteIfeoDebugger(32);
@@ -373,8 +400,20 @@ begin
       MsgBox(Format(CustomMessage('ContextMenuRegisterFailed'), [ExpandConstant('{commonappdata}\NotepadReplacer\context-menu.log')]), mbError, MB_OK);
       RollbackInstall;
       Abort;
-    end else if IsWin64 then
-      RefreshShell;
+    end;
+    AppPathsAttempted := True;
+    if not RunAppPathsRegistration('Install') then begin
+      ShowAppPathsError;
+      RollbackInstall;
+      Abort;
+    end;
+    if not RunAppPathsRegistration('Commit') then begin
+      ShowAppPathsError;
+      RollbackInstall;
+      Abort;
+    end;
+    AppPathsAttempted := False;
+    RefreshShell;
   end;
 end;
 
@@ -383,6 +422,10 @@ var
   Existing: String;
 begin
   if CurUninstallStep = usUninstall then begin
+    if not RunAppPathsRegistration('Uninstall') then begin
+      ShowAppPathsError;
+      Abort;
+    end;
     TargetPath := '';
     if ReadDebugger(32, Existing) and (CompareText(Copy(Existing, 1, Length(ExpectedLauncherPrefix(32))), ExpectedLauncherPrefix(32)) = 0) then begin
       DeleteIfeoDebugger(32);

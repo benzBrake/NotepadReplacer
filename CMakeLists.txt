@@ -74,4 +74,21 @@ if(BUILD_TESTING)
         )
     endif()
     add_test(NAME launcher_core_tests COMMAND launcher_core_tests)
+    add_executable(launcher_test_entry WIN32 tests/launcher_test_entry.cpp)
+    target_link_libraries(launcher_test_entry PRIVATE launcher_core shell32)
+    add_executable(launcher_test_editor tests/launcher_test_editor.cpp)
+    target_compile_definitions(launcher_test_editor PRIVATE UNICODE _UNICODE)
+    if(MSVC)
+        set_property(TARGET launcher_test_entry launcher_test_editor PROPERTY MSVC_RUNTIME_LIBRARY "${_runtime}")
+    endif()
+    find_program(POWERSHELL_EXECUTABLE NAMES powershell REQUIRED)
+    add_test(NAME app_paths_tests COMMAND "${POWERSHELL_EXECUTABLE}"
+        -NoProfile -NonInteractive -ExecutionPolicy Bypass
+        -File "${CMAKE_CURRENT_SOURCE_DIR}/tests/app_paths_tests.ps1")
+    add_test(NAME launcher_process_tests COMMAND "${POWERSHELL_EXECUTABLE}"
+        -NoProfile -NonInteractive -ExecutionPolicy Bypass
+        -File "${CMAKE_CURRENT_SOURCE_DIR}/tests/launcher_process_tests.ps1"
+        -Launcher $<TARGET_FILE:launcher_test_entry> -Editor $<TARGET_FILE:launcher_test_editor>)
+    set_tests_properties(app_paths_tests PROPERTIES TIMEOUT 60)
+    set_tests_properties(launcher_process_tests PROPERTIES TIMEOUT 120)
 endif()

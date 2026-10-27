@@ -19,6 +19,7 @@ NotepadReplacer 是一个 Windows 记事本替代工具，可将系统对 `notep
 
 - 将系统对 `notepad.exe` 的调用转发到指定的 `.exe` 程序。
 - 根据系统架构部署 Launcher；在 64 位系统上同时配置 32 位和 64 位 IFEO 注册表视图。
+- 通过 App Paths 注册 Shell 的 `notepad` 启动入口，支持缺少 System32 记事本可执行文件的系统。
 - 按 Windows 命令行规则转义并转发有效参数，正确处理空格、引号和反斜杠。
 - 在 64 位 Windows 11 的文件资源管理器顶层右键菜单中提供“使用记事本打开”。
 - 支持从右键菜单一次打开多个选中的文件。
@@ -39,6 +40,8 @@ NotepadReplacer 是一个 Windows 记事本替代工具，可将系统对 `notep
 HKEY_LOCAL_MACHINE\SOFTWARE\NotepadReplacer\TargetPath
 ```
 
+`Win+R` 中的 `notepad`、`notepad "C:\含空格目录\文件.txt"` 使用 Shell 启动入口。无参数运行 Launcher 也会打开已配置的编辑器。
+
 ### 使用前须知
 
 - 安装程序需要管理员权限。
@@ -47,6 +50,7 @@ HKEY_LOCAL_MACHINE\SOFTWARE\NotepadReplacer\TargetPath
 - 所选替代程序必须保持在原路径；文件被移动或删除后，转发与右键菜单将无法正常工作。
 - 如果系统中已有不属于本项目的 `notepad.exe` IFEO Debugger 配置，安装程序会停止，以免覆盖现有配置。
 - 完整的 x64 安装流程要求 64 位 Windows 11（Build 22000 或更高版本）。右键菜单包无法注册时，安装会回滚。
+- 安装只替换全机 App Paths 入口的默认值，保留其他值和子键。原默认值及类型保存在 `HKLM\SOFTWARE\NotepadReplacer\AppPathsBackup`，升级时保留首次备份。卸载仅在入口仍指向本项目 Launcher 时恢复原值；用户或其他程序后续修改的值会保留。安装不修改 HKCU App Paths，已有用户级入口可能影响 Shell 解析结果。
 
 ## 工作原理
 
@@ -75,6 +79,10 @@ HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\n
 ```
 
 右键菜单不经过 `notepad.exe`，而是读取安装器保存的目标路径，直接启动目标程序并传入所有选中文件。
+
+安装器还将 Launcher 路径写入 `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\notepad.exe`。Shell 启动时解析此入口，Launcher 读取 `TargetPath` 后转发文件参数；受支持 Windows 版本上的 App Paths 由 32 位和 64 位进程共享。
+
+`CreateProcess` 不查询 App Paths。硬编码调用不存在的 `C:\Windows\System32\notepad.exe` 仍不受支持；安装器不会创建占位可执行文件或写入 Windows 系统目录。开始菜单搜索属于独立入口，不因 App Paths 注册成功而保证可用。
 
 ## 从源码构建
 
@@ -106,8 +114,13 @@ cmake -S . -B dist/x64 -G "Visual Studio 17 2022" -A x64 -DNOTEPADREPLACER_BUILD
 运行测试：
 
 ```powershell
+cmake --build dist/x64 --config Release --target launcher_core_tests launcher_test_entry launcher_test_editor
 ctest --test-dir dist/x64 -C Release --output-on-failure
+cmake --build dist/x86 --config Release --target launcher_core_tests launcher_test_entry launcher_test_editor
+ctest --test-dir dist/x86 -C Release --output-on-failure
 ```
+
+自动化覆盖范围和隔离 Windows 验收清单见 [issue #1 验证记录](docs/issue-1-validation.md)。
 
 ### 构建安装包
 
@@ -149,6 +162,8 @@ GitHub Actions 中，将 `.certificates/NotepadReplacer.pfx.base64` 的内容保
 ```text
 %ProgramData%\NotepadReplacer\context-menu.log
 ```
+
+App Paths 注册和恢复错误记录在 `%ProgramData%\NotepadReplacer\app-paths.log`。注册提交前，本次安装快照保存在 `HKLM\SOFTWARE\NotepadReplacer\AppPathsTransaction`。恢复失败会保留快照并停止清理，不报告成功。解决日志中的原因后，可用管理员 PowerShell 执行安装目录中的 `RegisterAppPaths.ps1 -Action Rollback -LauncherPath "<已安装的 Launcher 路径>"` 恢复未完成的事务；卸载恢复失败则重试卸载。安装回滚不会恢复已移除的 Store 版记事本。
 
 Launcher 是 Windows 子系统程序，不显示控制台窗口；它在创建目标进程后立即退出，不等待目标程序结束。
 
