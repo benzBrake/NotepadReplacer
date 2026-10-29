@@ -5,6 +5,9 @@
 #ifndef BuildConfiguration
   #define BuildConfiguration "Release"
 #endif
+#ifndef ComponentsDirectory
+  #define ComponentsDirectory "..\dist"
+#endif
 
 [Setup]
 AppId={{9F5E1BD7-34A9-4B2E-9E44-4E12B9BFA8F0}
@@ -63,9 +66,9 @@ chinesesimp.MenuTitle=使用记事本打开
 [Files]
 Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion restartreplace
 Source: "..\ADDITIONAL-TERMS.md"; DestDir: "{app}"; Flags: ignoreversion restartreplace
-Source: "..\dist\x86\{#BuildConfiguration}\NotepadReplacerLauncher.exe"; DestDir: "{app}"; DestName: "NotepadReplacerLauncher-x86.exe"; Flags: ignoreversion restartreplace
-Source: "..\dist\x64\{#BuildConfiguration}\NotepadReplacerLauncher.exe"; DestDir: "{app}"; DestName: "NotepadReplacerLauncher-x64.exe"; Flags: ignoreversion restartreplace; Check: IsWin64
-Source: "..\dist\x64\{#BuildConfiguration}\NotepadReplacerContextMenu.dll"; DestDir: "{app}"; Flags: ignoreversion restartreplace; Check: IsWin64
+Source: "{#ComponentsDirectory}\x86\{#BuildConfiguration}\NotepadReplacerLauncher.exe"; DestDir: "{app}"; DestName: "NotepadReplacerLauncher-x86.exe"; Flags: ignoreversion restartreplace
+Source: "{#ComponentsDirectory}\x64\{#BuildConfiguration}\NotepadReplacerLauncher.exe"; DestDir: "{app}"; DestName: "NotepadReplacerLauncher-x64.exe"; Flags: ignoreversion restartreplace; Check: IsWin64
+Source: "{#ComponentsDirectory}\x64\{#BuildConfiguration}\NotepadReplacerContextMenu.dll"; DestDir: "{app}"; Flags: ignoreversion restartreplace; Check: IsWin64
 Source: "..\replacer.ico"; DestDir: "{app}"; Flags: ignoreversion restartreplace; Check: IsWin64
 Source: "..\dist\context-menu-package\NotepadReplacer.msix"; DestDir: "{app}\context-menu"; Flags: ignoreversion restartreplace; Check: IsWin64
 Source: "..\dist\context-menu-package\NotepadReplacer.cer"; DestDir: "{app}\context-menu"; Flags: ignoreversion restartreplace; Check: IsWin64
