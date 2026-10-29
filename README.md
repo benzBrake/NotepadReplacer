@@ -76,7 +76,31 @@ The context menu does not go through `notepad.exe`. It reads the target path sav
 
 ## Building from Source
 
-### Requirements
+### Build the Installer with WSLC
+
+With WSLC installed and enabled on Windows, run the following. No local Visual Studio, Windows SDK, or Inno Setup installation is required:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-wslc.ps1
+```
+
+The script installs CMake, Ninja, and MinGW-w64 inside a Debian Linux container and cross-compiles the x64/x86 Launchers, x64 context-menu DLL, and tests for both architectures. No compiler dependencies are installed in Windows or your regular WSL distribution. The first build downloads the base image and packages; subsequent builds use the WSLC build cache. Images and caches still consume local disk space.
+
+The script validates the installer source, builds components in a container, runs both Windows test executables on the host, then packages the MSIX with Microsoft's open-source MSIX SDK, signs with osslsigncode, and compiles the installer with Inno Setup 6 under Wine inside a container. The result is `dist\NotepadReplacerSetup.exe`; the MSIX and public certificate are in `dist\context-menu-package`. Preparing the packaging image downloads and builds tools, including 32/64-bit Wine, so the first run takes more time and disk space than compiling components alone. Later runs reuse images and build caches.
+
+If neither a local certificate nor an environment certificate is configured, the script automatically runs `installer/New-SigningCertificate.ps1` using built-in Windows PowerShell to create a persistent local self-signed certificate. Subsequent runs reuse it without overwriting signing material. An existing local PFX takes precedence over `WINDOWS_CERTIFICATE` and `WINDOWS_CERTIFICATE_PASSWORD`. Private keys and passwords are mounted read-only only while the packaging container runs and are never included in image layers. The packaging container has networking disabled; temporary signing files are removed after it exits. Building does not add certificates to the host's trusted certificate stores.
+
+Component outputs go to `dist\wslc\x64\Release` and `dist\wslc\x86\Release`, separately from MSVC builds. Options include `-Configuration Debug`, `-OutputDirectory <components directory>`, `-InstallerOutputDirectory <installer directory>`, `-SkipTests`, and `-SkipInstaller`. Compiler runtimes are linked statically, so no MinGW runtime DLLs need to be distributed. Image build contexts include only component sources, resources, and container build scripts, and exclude `.certificates`.
+
+To compile components only, skipping the packaging image and certificate preparation, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-wslc.ps1 -SkipInstaller
+```
+
+The existing GitHub Actions Nightly workflow can also generate the complete installer. Container build validation includes core unit tests, MSIX digest and signature checks, and Inno Setup compilation. Explorer registration and installation/uninstallation still need testing in a Windows 11 test environment.
+
+### Local MSVC Requirements
 
 - Visual Studio 2022 with the “Desktop development with C++” workload
 - CMake 3.21 or later

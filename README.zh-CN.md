@@ -78,7 +78,31 @@ HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\n
 
 ## 从源码构建
 
-### 环境要求
+### 使用 WSLC 一键构建安装包
+
+Windows 上安装并启用 WSLC 后，可直接执行，无需本机安装 Visual Studio、Windows SDK 或 Inno Setup：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-wslc.ps1
+```
+
+脚本在 Debian Linux 容器中安装 CMake、Ninja 和 MinGW-w64，交叉编译 x64/x86 Launcher、x64 右键菜单 DLL 及两个架构的测试程序；不需要在 Windows 或日常 WSL 发行版中安装编译依赖。首次构建需要联网下载基础镜像和软件包，之后使用 WSLC 构建缓存。镜像与缓存仍会占用本机磁盘空间。
+
+脚本会检查安装器源码、在容器中编译组件、在 Windows 主机运行两个架构的测试程序，再在容器中通过微软开源 MSIX SDK 打包、osslsigncode 签名，以及 Wine 中的 Inno Setup 6 编译，最终生成 `dist\NotepadReplacerSetup.exe`。配套 MSIX 和公钥证书位于 `dist\context-menu-package`。首次准备打包镜像需要下载和构建工具，包含 32/64 位 Wine，耗时和磁盘占用会明显多于仅编译组件；后续复用镜像和构建缓存。
+
+首次未配置本地证书或环境变量证书时，会自动调用 `installer/New-SigningCertificate.ps1`，使用 Windows 内置 PowerShell 生成固定的本地自签名证书；之后复用该证书，不覆盖已有签名材料。已有本地 PFX 优先于环境变量 `WINDOWS_CERTIFICATE` 和 `WINDOWS_CERTIFICATE_PASSWORD`。私钥和密码只在打包容器运行时以只读方式挂载，不写入镜像；打包容器禁用网络，退出后删除临时签名文件。不会为构建向本机受信任证书存储区添加证书。
+
+组件产物导出到 `dist\wslc\x64\Release` 和 `dist\wslc\x86\Release`，与 MSVC 构建目录分开。支持 `-Configuration Debug`、`-OutputDirectory <组件目录>`、`-InstallerOutputDirectory <安装包目录>`、`-SkipTests` 和 `-SkipInstaller`。MinGW 编译器运行库静态链接，不需要额外分发 MinGW DLL。镜像构建上下文只包含组件源码、资源和容器构建脚本，不包含 `.certificates`。
+
+若只需编译组件、跳过打包镜像和证书准备：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-wslc.ps1 -SkipInstaller
+```
+
+也可使用仓库现有的 GitHub Actions Nightly 工作流生成完整安装包。容器构建验证包含核心单元测试、MSIX 摘要与签名校验及 Inno Setup 编译；Explorer 菜单注册、安装及卸载行为仍需在 Windows 11 测试环境中验证。
+
+### 本地 MSVC 环境要求
 
 - Visual Studio 2022，包含“使用 C++ 的桌面开发”工作负载
 - CMake 3.21 或更高版本
