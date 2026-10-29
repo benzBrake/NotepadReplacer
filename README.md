@@ -19,6 +19,7 @@ The installer handles target-program selection, removal of the Microsoft Store v
 
 - Forward calls to `notepad.exe` to a specified `.exe` program.
 - Deploy the Launcher for the system architecture; on 64-bit systems, configure both 32-bit and 64-bit IFEO registry views.
+- Register a Shell `notepad` entry through App Paths, including systems without a System32 Notepad executable.
 - Escape and forward valid arguments according to Windows command-line rules, including spaces, quotes, and backslashes.
 - Add an “Open with Notepad” command to the top-level File Explorer context menu on 64-bit Windows 11.
 - Open multiple selected files from the context menu in one operation.
@@ -37,6 +38,8 @@ The installation directory is fixed at `Program Files\NotepadReplacer` on the sy
 HKEY_LOCAL_MACHINE\SOFTWARE\NotepadReplacer\TargetPath
 ```
 
+`Win+R` commands such as `notepad` and `notepad "C:\folder with spaces\file.txt"` use the Shell entry. Launching the Launcher without arguments also opens the configured editor.
+
 ### Before You Install
 
 - The installer requires administrator privileges.
@@ -45,6 +48,7 @@ HKEY_LOCAL_MACHINE\SOFTWARE\NotepadReplacer\TargetPath
 - The selected replacement program must remain at its original path. Forwarding and the context menu will not work correctly if the file is moved or deleted.
 - If an IFEO Debugger configuration for `notepad.exe` already exists and does not belong to this project, installation stops to avoid overwriting it.
 - The complete x64 installation requires 64-bit Windows 11 (Build 22000 or later). Installation rolls back if the context-menu package cannot be registered.
+- Installation replaces only the default value of the machine-wide App Paths entry, preserving its other values and subkeys. The original default value and type are saved under `HKLM\SOFTWARE\NotepadReplacer\AppPathsBackup` and retained across upgrades. Uninstall restores that value only if the entry still points to this project's Launcher; later changes by users or other software are preserved. HKCU App Paths entries are not modified and may affect Shell resolution.
 
 ## How It Works
 
@@ -74,9 +78,37 @@ An application or command line calls notepad.exe
 
 The context menu does not go through `notepad.exe`. It reads the target path saved by the installer, starts the target program directly, and passes all selected files to it.
 
+The installer also registers `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\notepad.exe` with the Launcher path. Shell launches resolve this entry, and the Launcher reads `TargetPath` before forwarding any document arguments. App Paths is shared between 32-bit and 64-bit processes on supported Windows versions.
+
+`CreateProcess` does not search App Paths. Calls that hardcode a missing `C:\Windows\System32\notepad.exe` remain unsupported; the installer does not create placeholder executables or write into Windows system directories. Start menu search is a separate entry point and is not guaranteed by App Paths registration.
+
 ## Building from Source
 
-### Requirements
+### Build the Installer with WSLC
+
+With WSLC installed and enabled on Windows, run the following. No local Visual Studio, Windows SDK, or Inno Setup installation is required:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-wslc.ps1
+```
+
+The script installs CMake, Ninja, and MinGW-w64 inside a Debian Linux container and cross-compiles the x64/x86 Launchers, x64 context-menu DLL, and tests for both architectures. No compiler dependencies are installed in Windows or your regular WSL distribution. The first build downloads the base image and packages; subsequent builds use the WSLC build cache. Images and caches still consume local disk space.
+
+The script validates the installer source, builds components in a container, runs both Windows test executables on the host, then packages the MSIX with Microsoft's open-source MSIX SDK, signs with osslsigncode, and compiles the installer with Inno Setup 6 under Wine inside a container. The result is `dist\NotepadReplacerSetup.exe`; the MSIX and public certificate are in `dist\context-menu-package`. Preparing the packaging image downloads and builds tools, including 32/64-bit Wine, so the first run takes more time and disk space than compiling components alone. Later runs reuse images and build caches.
+
+If neither a local certificate nor an environment certificate is configured, the script automatically runs `installer/New-SigningCertificate.ps1` using built-in Windows PowerShell to create a persistent local self-signed certificate. Subsequent runs reuse it without overwriting signing material. An existing local PFX takes precedence over `WINDOWS_CERTIFICATE` and `WINDOWS_CERTIFICATE_PASSWORD`. Private keys and passwords are mounted read-only only while the packaging container runs and are never included in image layers. The packaging container has networking disabled; temporary signing files are removed after it exits. Building does not add certificates to the host's trusted certificate stores.
+
+Component outputs go to `dist\wslc\x64\Release` and `dist\wslc\x86\Release`, separately from MSVC builds. Options include `-Configuration Debug`, `-OutputDirectory <components directory>`, `-InstallerOutputDirectory <installer directory>`, `-SkipTests`, and `-SkipInstaller`. Compiler runtimes are linked statically, so no MinGW runtime DLLs need to be distributed. Image build contexts include only component sources, resources, and container build scripts, and exclude `.certificates`.
+
+To compile components only, skipping the packaging image and certificate preparation, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-wslc.ps1 -SkipInstaller
+```
+
+The existing GitHub Actions Nightly workflow can also generate the complete installer. Container build validation includes core unit tests, MSIX digest and signature checks, and Inno Setup compilation. Explorer registration and installation/uninstallation still need testing in a Windows 11 test environment.
+
+### Local MSVC Requirements
 
 - Visual Studio 2022 with the “Desktop development with C++” workload
 - CMake 3.21 or later
@@ -104,8 +136,13 @@ cmake -S . -B dist/x64 -G "Visual Studio 17 2022" -A x64 -DNOTEPADREPLACER_BUILD
 Run the tests:
 
 ```powershell
+cmake --build dist/x64 --config Release --target launcher_core_tests launcher_test_entry launcher_test_editor
 ctest --test-dir dist/x64 -C Release --output-on-failure
+cmake --build dist/x86 --config Release --target launcher_core_tests launcher_test_entry launcher_test_editor
+ctest --test-dir dist/x86 -C Release --output-on-failure
 ```
+
+See [issue #1 validation](docs/issue-1-validation.md) for automated coverage and the disposable Windows acceptance checklist.
 
 ### Build the Installer
 
@@ -149,6 +186,8 @@ If registration of the Windows 11 context menu fails, the installation rolls bac
 ```text
 %ProgramData%\NotepadReplacer\context-menu.log
 ```
+
+App Paths registration and recovery errors are recorded in `%ProgramData%\NotepadReplacer\app-paths.log`. A pending installation snapshot is stored under `HKLM\SOFTWARE\NotepadReplacer\AppPathsTransaction` until registration is committed. Recovery failures retain the snapshots and stop cleanup rather than reporting success. After resolving the logged cause, run the installed `RegisterAppPaths.ps1` as administrator with `-Action Rollback -LauncherPath "<installed Launcher path>"` for an unfinished transaction, or retry uninstall for an uninstall failure. Store Notepad removal is not reversed by rollback.
 
 The Launcher is a Windows subsystem program and does not display a console window. It exits immediately after creating the target process; it does not wait for the target program to finish.
 
