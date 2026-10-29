@@ -48,6 +48,18 @@ Store Notepad and its provisioned package, and rollback does not restore them.
 | Missing hardcoded System32 path | Record as outside this fix's scope; no placeholder executable is installed. |
 
 The development host is Windows 11 26H1, build 28000.2956, with system Notepad
-files present. No disposable 25H2 environment was available during implementation;
-real `notepad` Win+R, missing-system-entry installation, Start menu search, and
-installer failure/uninstall UI checks remain unverified there.
+files present. No disposable 25H2 environment was available during the initial
+implementation.
+
+On 2026-10-29, the maintainer reported successful testing in a VMware VM running
+Windows 11 build 26200.9457. That installation had no Store Notepad, but did have
+the traditional `notepad.exe`. The test procedure was to temporarily rename the
+system Notepad executables, install this branch's installer, and check Win+R
+launches with and without a file argument. This is a user-reported result for a simulated missing-system-entry
+environment, rather than an independently observed test of the issue reporter's
+original image. The exact renamed paths and individual command outputs were not
+recorded.
+
+Start menu search and installer failure/uninstall UI checks remain unverified in
+that VM. Hardcoded calls to a missing System32 executable remain outside this fix's
+scope; the installer does not create a placeholder executable.
