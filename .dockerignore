@@ -1,0 +1,14 @@
+*
+!CMakeLists.txt
+!replacer.ico
+!cmake/
+!cmake/**
+!src/
+!src/**
+!tests/
+!tests/**
+!containers/
+!containers/windows-cross/
+!containers/windows-cross/Dockerfile
+!containers/windows-cross/packaging.Dockerfile
+!containers/windows-cross/package.sh

@@ -33,11 +33,17 @@ jobs:
 
       - name: Build tests
         shell: pwsh
-        run: cmake --build dist/x64 --config Release --target launcher_core_tests
+        run: |
+          cmake --build dist/x64 --config Release --target launcher_core_tests launcher_test_entry launcher_test_editor
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build dist/x86 --config Release --target launcher_core_tests launcher_test_entry launcher_test_editor
 
       - name: Run tests
         shell: pwsh
-        run: ctest --test-dir dist/x64 -C Release --output-on-failure
+        run: |
+          ctest --test-dir dist/x64 -C Release --output-on-failure
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --test-dir dist/x86 -C Release --output-on-failure
 
       - name: Ensure Inno Setup is available
         shell: pwsh
